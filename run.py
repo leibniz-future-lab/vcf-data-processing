@@ -57,10 +57,14 @@ def clean_and_make(vcf_chunk, df_clean, df_created, lock):
 
         new_row = {'#CHROM':row['#CHROM'], 'POS':f"{row['POS']}", 'ID':row['ID'], 'REF':row['REF'],
                    'ALT':ALT, 'QUAL':row['QUAL'], 'FILTER':row['FILTER'], 'INFO':row['INFO']}
+        lock.acquire()
         df_clean = df_clean.append(new_row, ignore_index=True)
+        lock.release()
 
-        if int(row["POS"]) in dict_chrom_range[row["#CHROM"]]:        
+        if int(row["POS"]) in dict_chrom_range[row["#CHROM"]]:
+            lock.acquire()        
             df_created = df_created.append(new_row, ignore_index=True)
+            lock.release()
     
         
 #     return df_created, current_df
@@ -92,20 +96,14 @@ def read_db_by_chunk(file_path, dict_chrom_range):
             # creating threads
             for i in range(len(tasks)):
                 tasks[i] = threading.Thread(target=clean_and_make, args=(vcf_chunk, df_clean, df_created, lock,))
-            # t1 = threading.Thread(target=clean_and_make, args=(vcf_chunk, df_clean, df_created, lock,))
-            # t2 = threading.Thread(target=clean_and_make, args=(vcf_chunk, df_clean, df_created, lock,))
                         
             # start threads
             for i in range(len(tasks)):
                 tasks[i].start()
-            # t1.start()
-            # t2.start()
                                   
             # wait until threads finish their job
             for i in range(len(tasks)):
                 tasks[i].join() 
-            # t1.join()
-            # t2.join()
                     
         except:
             print("Done looping through data")
@@ -152,7 +150,7 @@ if __name__ == '__main__':
     for file in dir_list:
         # 1.6G <> 9.7G    
     
-        # file = "LRRK2AJ6290001.g.vcf.gz"
+        file = "LRRK2AJ6290001.g.vcf.gz"
         start_time = time.time()    
 
         if len(file.split(".")) != 4: 
